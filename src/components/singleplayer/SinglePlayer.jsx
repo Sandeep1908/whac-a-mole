@@ -16,7 +16,7 @@ function SinglePlayer() {
         localStorage.setItem('username',username)
         socket.emit('singleplayer',username)
         setUsername('')
-        navigate('/game')
+        navigate('/sigleplayer-game')
       }, 1000);
      
      

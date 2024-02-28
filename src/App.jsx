@@ -16,7 +16,7 @@ function App() {
         <Route path="/mode" element={<Mode />} />
         <Route path="/multiplayer" element={<Multiplayer />} />
         <Route path="/singleplayer" element={<SinglePlayer />} />
-        <Route path="/sigleplayer" element={<Main />} />
+        <Route path="/sigleplayer-game" element={<Main />} />
         <Route path="/multi-player-game" element={<MultiplayerComponent />} />
 
 
