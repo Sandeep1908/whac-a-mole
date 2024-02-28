@@ -3,3 +3,38 @@
 @tailwind utilities;
 
  
+
+.whac-animation{
+    animation: whac-linear infinite 4s;
+}
+
+
+.whac-game-animation{
+    animation: whac-game-linear infinite 1s;
+}
+
+ 
+
+@keyframes whac-game-linear {
+
+    0%{
+        transform: translateY(100%);
+    }
+ 
+    100%{
+        transform: translateY(50%);
+    }
+}
+ 
+@keyframes whac-linear {
+
+    0%{
+        transform: translateY(100%);
+    }
+    50%{
+        transform: translateY(50%);
+    }
+    100%{
+        transform: translateY(0%);
+    }
+}
