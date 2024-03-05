@@ -23,38 +23,42 @@ const io = new Server(httpServer, {
 
 connectDB()
 
-const connectedUser = new Map();
-let waitingUser=null
+// const connectedUser = new Map();
  
-
+ 
+ 
+const rooms = {};
+const score={}
 io.on("connection", (socket) => {
 
 
-  //Multiplayer
+  //Multiplayer 
 
-  socket.on('userjoining',async(data)=>{
-
-    if(!waitingUser){
-      waitingUser=data
-      io.emit('userjoined',{currentUser:data.userId,room:data.roomId})
+  socket.on('join-game',({userId,roomId})=>{
+    socket.join(roomId)
+    if(!rooms[roomId]){
+      rooms[roomId]={players:{},}
     }
-    else{
-      const currentuserId=waitingUser.userId
-      const roomId=waitingUser?.roomId || data.roomId
-      const opponentId=data.userId
-      socket.join(roomId)
-
-      socket.emit('playerjoined')
-      io.emit('userjoined',{currentUser:currentuserId,opponentUser:opponentId,room:roomId})
-
-      waitingUser=null
-      
-    }
-
-
+    
+    rooms[roomId].players[socket.id]={id:userId}
+    io.to(roomId).emit('room-info',{rooms:rooms[roomId],userId})
 
   })
+  
 
+  
+
+
+  socket.on('scoreUpdate', (roomId, playerId, score) => {
+    
+    rooms[roomId].players[socket.id].score = score;
+    
+ 
+    const opponentId = Object.keys(rooms[roomId].players).find(id => id !== socket.id);
+    if (opponentId) {
+      io.to(opponentId).emit('opponentScoreUpdate', score);
+    }
+  });
   
 
 
@@ -65,7 +69,6 @@ io.on("connection", (socket) => {
 
   socket.on("singleplayer", (data) => {
     const username = data;
-    connectedUser.set(socket.id, username);
     socket.emit("gamestart", username);
   });
 
@@ -74,8 +77,20 @@ io.on("connection", (socket) => {
   });
 
 
-  socket.on("disconnect", () => {
-    connectedUser.delete(socket.id);
+  socket.on('disconnect', () => {
+   
+    const roomId = socket.roomId;
+    if (roomId) {
+     
+      const room = rooms[roomId];
+      if (room && room.players[socket.id]) {
+      
+        delete room.players[socket.id];
+        
+        io.to(roomId).emit('roomInfo', room);
+      }
+    }
+    console.log('Client disconnected');
   });
 });
 
