@@ -7,8 +7,10 @@ import SinglePlayer from "./components/singleplayer/SinglePlayer";
 import Main from "./components/singleplayer/Main";
 import MultiplayerComponent from "./components/multiplayer/Main";
 import 'react-toastify/dist/ReactToastify.css';
+import { getUserId } from "./utils/getUserId";
 
 function App() {
+  getUserId()
   return (
     <BrowserRouter>
       <Routes>
@@ -17,7 +19,7 @@ function App() {
         <Route path="/multiplayer" element={<Multiplayer />} />
         <Route path="/singleplayer" element={<SinglePlayer />} />
         <Route path="/sigleplayer-game" element={<Main />} />
-        <Route path="/multi-player-game" element={<MultiplayerComponent />} />
+        <Route path="/multi-player-game/:roomId" element={<MultiplayerComponent />} />
 
 
         {/* Add more routes as needed */}
