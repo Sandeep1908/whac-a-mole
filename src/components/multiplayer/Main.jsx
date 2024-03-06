@@ -1,4 +1,4 @@
-import React, { useEffect, useId, useState } from "react";
+import React, { useEffect, useId, useMemo, useState } from "react";
 import getRandomNumber from "../../utils/getRandomNumber";
 
 import { Bounce, ToastContainer } from "react-toastify";
@@ -12,11 +12,12 @@ function Main() {
   const [roomUrl, setRoomUrl] = useState("");
   const [roomJoined, setRoomJoined] = useState(false);
   const location = useLocation();
-  const [opponent, setOpponent] = useState("");
- 
+  const [opponent, setOpponent] = useState([]);
+
   const [localScore, setLocalScore] = useState(0);
   const [opponentScore, setOpponentScore] = useState(0);
-  const [waiting,setIsWaiting]=useState(null)
+  const [waiting, setIsWaiting] = useState(null);
+  const [timer, setTimer] = useState(30);
 
   useEffect(() => {
     const host = window.location.host;
@@ -25,54 +26,44 @@ function Main() {
   }, []);
 
   useEffect(() => {
-    console.log("opponent",opponent)
-    socket.on("room-info", (data) => {
-      const players = Object.values(data.rooms.players);
-      
-      if(players.length>=2){
-        const opponent = players.find(
-          (player) => player.id !== localStorage.getItem("userId")
-        );
-          
-         
-        if (opponent) {
-          setOpponent(opponent?.id);
-          setRoomJoined(true);
-          setIsWaiting(false)
-        
-        }
+    socket.on("room-info", ({ rooms, userId }) => {
+       
+      const opponents = Object.values(rooms.players).filter(
+        (item) => item?.id !== localStorage.getItem("userId")
+      );
+       
+   
+
+      if (opponents.length >= 1) {
+        setIsWaiting(false);
+        setRoomJoined(true);
+        setInterval(() => {
+            const no=getRandomNumber()
+            setCurrentWhac(no)
+        }, 1000);
+      } else {
+        setIsWaiting(true);
       }
-      
     });
 
+    socket.on('opponentScoreUpdate',({rooms})=>{
+      const opponents = Object.values(rooms.players).filter(
+        (item) => item?.id !== localStorage.getItem("userId")
+      );
+      setOpponent(opponents);
 
-    socket.on("opponentScoreUpdate", (score) => {
-      setOpponentScore(score);
+    })
+
+    socket.on("user-disconnected", (data) => {
+      console.log('user Dissconnected',data)
     });
-  }, [opponent]);
+  }, [opponent.length]);
 
   const handleJoinRoom = () => {
     const userId = localStorage.getItem("userId");
     const roomId = location.pathname;
     socket.emit("join-game", { userId, roomId });
-    setIsWaiting(true)
-  };
-
-  const handleStart = () => {
-    const id = setInterval(() => {
-      const randNo = getRandomNumber();
-      setCurrentWhac(randNo);
-    }, 1000);
-    setIntervalId(id);
-  };
-
-  const handleStop = () => {
-    clearInterval(intervalId);
-    setIntervalId(null);
-  };
-
-  const handleReset = () => {
-    setCurrentWhac(null);
+    setIsWaiting(true);
   };
 
   const handleWhacClicked = (idx) => {
@@ -109,12 +100,25 @@ function Main() {
             <h1 className="text-2xl text-center uppercase font-bold">
               Whac a mole
             </h1>
+            <h1>Time:{timer}</h1>
             <p>Room name: {roomUrl}</p>
-           
-            {opponent &&   <p>Opponent Id:{opponent} opponent score:{opponentScore} your score:{localScore} </p>}
+            <p>Your score :{localScore} You :{localStorage.getItem('userId')}</p>
+            {opponent?.map((item, id) => {
+              return (
+                <h1 key={id}>
+                  Opponent {id} --- {item.id} Score:-- {item.score}
+                </h1>
+              );
+            })}
+
+            {/* {opponent && (
+              <p>
+                Opponent Id:{opponent} opponent score:{opponentScore} your
+                score:{localScore}{" "}
+              </p>
+            )} */}
 
             {waiting && <p>Waiting for oppnent...</p>}
-          
           </div>
           <div></div>
 
@@ -140,32 +144,6 @@ function Main() {
               Join Room
             </button>
           )}
-
-          <div className="w-full flex justify-center items-center gap-5 pt-10">
-            <button
-              className="w-20 h-10 bg-blue-500 text-white rounded-md"
-              onClick={handleStart}
-              disabled={!roomJoined}
-            >
-              Play
-            </button>
-
-            <button
-              className="w-20 h-10 bg-red-500 text-white rounded-md"
-              onClick={handleStop}
-              disabled={!roomJoined}
-            >
-              Pause
-            </button>
-
-            <button
-              className="w-20 h-10 bg-green-500 text-white rounded-md"
-              onClick={handleReset}
-              disabled={!roomJoined}
-            >
-              Reset
-            </button>
-          </div>
         </div>
       </div>
     </div>

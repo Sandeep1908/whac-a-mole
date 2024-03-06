@@ -1,13 +1,11 @@
-import dotenv from 'dotenv'
-dotenv.config()
+import dotenv from "dotenv";
+dotenv.config();
 
 import express from "express";
 import { createServer } from "http";
 import { Server } from "socket.io";
 import cors from "cors";
-import connectDB from './db/connections.js';
-import { getUserId } from './utils/getUserId.js';
-import { User } from './models/user.models.js';
+import connectDB from "./db/connections.js";
 
 const app = express();
 const PORT = 8080;
@@ -21,48 +19,41 @@ const io = new Server(httpServer, {
   },
 });
 
-connectDB()
+connectDB();
 
 // const connectedUser = new Map();
- 
- 
- 
+
 const rooms = {};
-const score={}
+
 io.on("connection", (socket) => {
+  //Multiplayer
 
+  socket.on("join-game", ({ userId, roomId }) => {
+    console.log("roomId",roomId)
+    socket.join(roomId);
 
-  //Multiplayer 
-
-  socket.on('join-game',({userId,roomId})=>{
-    socket.join(roomId)
-    if(!rooms[roomId]){
-      rooms[roomId]={players:{},}
+    if (!rooms[roomId]) {
+      rooms[roomId] = { players: {} };
     }
-    
-    rooms[roomId].players[socket.id]={id:userId}
-    io.to(roomId).emit('room-info',{rooms:rooms[roomId],userId})
-
-  })
-  
-
-  
+    rooms[roomId].players[socket.id] = { id: userId, score: 0 };
+    io.to(roomId).emit("room-info", { rooms: rooms[roomId], userId });
+  });
 
 
-  socket.on('scoreUpdate', (roomId, playerId, score) => {
-    
-    rooms[roomId].players[socket.id].score = score;
-    
- 
-    const opponentId = Object.keys(rooms[roomId].players).find(id => id !== socket.id);
-    if (opponentId) {
-      io.to(opponentId).emit('opponentScoreUpdate', score);
+
+
+
+  socket.on("scoreUpdate", (roomId, playerId, score) => {
+     
+    if (rooms[roomId] && rooms[roomId].players[socket.id]) {
+      rooms[roomId].players[socket.id].score = score;
+
+      io.to(roomId).emit("opponentScoreUpdate", {
+        rooms: rooms[roomId]
+      });
     }
   });
-  
 
-
-   
 
 
   //Singleplayer
@@ -72,25 +63,30 @@ io.on("connection", (socket) => {
     socket.emit("gamestart", username);
   });
 
+
+
+
   socket.on("scoreupdate", (data) => {
     socket.emit("scoreupdate", data.score);
   });
 
+  socket.on("disconnect", () => {
+    for (const roomId in rooms) {
+      if (rooms[roomId].players[socket.id]) {
+        const user=rooms[roomId].players[socket.id]
+        delete rooms[roomId].players[socket.id];
 
-  socket.on('disconnect', () => {
-   
-    const roomId = socket.roomId;
-    if (roomId) {
-     
-      const room = rooms[roomId];
-      if (room && room.players[socket.id]) {
-      
-        delete room.players[socket.id];
-        
-        io.to(roomId).emit('roomInfo', room);
+        if (Object.keys(rooms[roomId]).length === 0) {
+          delete rooms[roomId];
+        } else {
+          io.to(roomId).emit("room-info", { rooms: rooms[roomId] });
+          io.emit('user-disconnected',user)
+        }
+
+        break;
       }
     }
-    console.log('Client disconnected');
+    console.log("Client disconnected");
   });
 });
 
